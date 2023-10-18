@@ -160,7 +160,7 @@ dispatch() {
                         exit 1
                     fi
                     # filter
-                    filtercmd="$filtercmd | grep -E -- '${1#/}'"
+                    filtercmd="$filtercmd | grep -Ei -- '${1#/}'"
                 ;;
                 ^*)
                     if [[ -z "$cmdfunction" ]]; then 
@@ -168,7 +168,7 @@ dispatch() {
                         exit 1
                     fi
                     # filter
-                    filtercmd="$filtercmd | grep -E -v -- '${1#^}'"
+                    filtercmd="$filtercmd | grep -Eiv -- '${1#^}'"
                 ;;
                 *)
                     # command option or argument (this is a catch-all)
@@ -197,13 +197,13 @@ dispatch() {
 
 _pcmddefault() {
     # is this even a kubectl command?
-    if ! $KUBECTL $cmdfunction --help >/dev/null 2>/dev/null
+    if ! $KUBECTL $cmdname --help >/dev/null 2>/dev/null
     then
         echo "Neither 'kubectl' nor '$SCRIPT_NAME' defines a command '$cmdname'." 1>&2
         exit 1
     fi
     __require_stdoutbufprev_is_filled
-    $KUBECTL $cmdfunction $* $(cat $stdoutbufprev) 
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
 }
 
 _pcmd__bash() {
@@ -216,6 +216,9 @@ _pcmd__base64decode() {
 _pcmd__base64encode() {
     base64 $stdoutbufprev > $stdoutbuf
 }
+_pcmd__describe() {
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
+}
 _pcmd__first() {
     head -n 1 $stdoutbufprev > $stdoutbuf
 }
@@ -225,7 +228,11 @@ _fcmd__follow() {
 }
 _pcmd__get() {
     # get does not require prior input
-    $KUBECTL $cmdfunction $* $(cat $stdoutbufprev) 
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
+}
+_pcmd__grep() {
+    # get does not require prior input
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
 }
 _pcmd__jq() {
     if ! which jq >/dev/null 2>/dev/null
@@ -253,6 +260,10 @@ _pcmd__ordinal() {
 }
 _pcmd__sed() {
     $KUBECTLWIN exec -it $(cat $stdoutbufprev) -- bash
+}
+_pcmd__vi() {
+    cp $stdoutbufprev $stdoutbuf
+    vi $stdoutbuf || exit 1
 }
 _pcmd__vim() {
     cp $stdoutbufprev $stdoutbuf
