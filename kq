@@ -38,14 +38,18 @@ then
     KUBECTLWIN="winpty $KUBECTLWIN"
 fi
 
+# Swap buffers in preparation for next command
 new_buffer() {
     mv $stdoutbuf $stdoutbufprev
     echo "" > $stdoutbuf
 }
 
+# Util function: how many lines are in the incoming buffer?
 __stdoutbufprev_lines() {
     wc -l < $stdoutbufprev
 }
+
+# Util function: Fail if there are no lines in incoming buffer
 __require_stdoutbufprev_is_filled() {
     local lines=$(__stdoutbufprev_lines)
     if [[ $lines -lt 1 ]]
@@ -54,6 +58,8 @@ __require_stdoutbufprev_is_filled() {
         exit 1
     fi
 }
+
+# Util function: Fail if there's not a single line in incoming buffer
 __require_stdoutbufprev_is_one_line() {
     local lines=$(__stdoutbufprev_lines)
     if [[ $lines -lt 1 ]]
@@ -69,6 +75,7 @@ __require_stdoutbufprev_is_one_line() {
 }
 
 
+# Kick off the next command
 __exec() {
     if [[ -n "$cmdfunction" ]]
     then
@@ -89,6 +96,7 @@ __exec() {
     fi
 }
 
+# Resolve pcmd tokens and aliases into their necessary functions
 __pcmdresolve() {
     case "$1" in
         :b64encode)
@@ -124,6 +132,7 @@ __pcmdresolve() {
     esac
 }
 
+# Resolve fcmd tokens and aliases into their necessary functions
 __fcmdresolve() {
     case "$1" in
         @f)
@@ -136,6 +145,7 @@ __fcmdresolve() {
     esac
 }
 
+# MAIN FUNCTION: Parse/Munge the input string
 dispatch() {
     while [[ "$#" -gt 0 ]]
     do
@@ -195,6 +205,12 @@ dispatch() {
 
 }
 
+
+###############################################################################
+#
+# BULK FUNCTIONALITY
+#
+###############################################################################
 _pcmddefault() {
     # is this even a kubectl command?
     if ! $KUBECTL $cmdname --help >/dev/null 2>/dev/null
@@ -274,5 +290,10 @@ _pcmd__yaml() {
     $KUBECTL get -o yaml $* $(cat $stdoutbufprev) > $stdoutbuf
 }
 
+###############################################################################
+#
+# MAIN: Send to dispatch
+#
+###############################################################################
 dispatch "$@"
 
