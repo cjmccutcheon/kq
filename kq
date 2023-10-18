@@ -1,0 +1,267 @@
+#!/bin/bash
+
+# Script orientation/environment
+SCRIPT_DIR=$(dirname $0)
+SCRIPT_NAME="${0##*/}"
+
+# Buffers for pcmd actions
+stdoutbuf=$(mktemp)
+stdoutbufprev=$(mktemp)
+trap "rm $stdoutbuf $stdoutbufprev" EXIT
+
+# Where's kubectl?
+
+if [[ ! -v KUBECTL ]]
+then
+    KUBECTL=kubectl
+fi
+if [[ ! -v KUBECTLWIN ]]
+then
+    KUBECTLWIN=$(readlink -f $(which kubectl))
+fi
+
+if [[ $1 == '--namespace' || $1 == '-n' ]]
+then
+    shift
+    KUBECTL="$kubectl -n $1"
+    KUBECTLWIN="$KUBECTLWIN -n $1"
+    shift
+fi
+if [[ $1 == '--input' || $1 == '-i' ]]
+then
+    shift
+    echo "$1" > $stdoutbufprev
+    shift
+fi
+if uname -a | grep -Eqi 'mingw|cygwin'
+then
+    KUBECTLWIN="winpty $KUBECTLWIN"
+fi
+
+new_buffer() {
+    mv $stdoutbuf $stdoutbufprev
+    echo "" > $stdoutbuf
+}
+
+__stdoutbufprev_lines() {
+    wc -l < $stdoutbufprev
+}
+__require_stdoutbufprev_is_filled() {
+    local lines=$(__stdoutbufprev_lines)
+    if [[ $lines -lt 1 ]]
+    then
+        echo "ERROR: $cmdfunction must receive at least 1 input object to operate."
+        exit 1
+    fi
+}
+__require_stdoutbufprev_is_one_line() {
+    local lines=$(__stdoutbufprev_lines)
+    if [[ $lines -lt 1 ]]
+    then
+        echo "ERROR: $cmdfunction must receive an input object to operate."
+        exit 1
+    elif [[ $lines -gt 1 ]]
+    then
+        echo "ERROR: $cmdfunction is limited to operating on only one object. Buffer:"
+        cat $stdoutbufprev
+        exit 1
+    fi
+}
+
+
+__exec() {
+    if [[ -n "$cmdfunction" ]]
+    then
+        funcname="${cmdfunction}"
+        if ! declare -F $funcname >/dev/null
+        then
+            funcname=_pcmddefault
+        fi
+
+        callfunc="${funcname} ${cmdopts}"
+        #echo "callfunc=$callfunc" 1>&2
+        eval $callfunc
+        if [[ -n "$filtercmd" ]]
+        then
+            new_buffer
+            eval cat $stdoutbufprev $filtercmd > $stdoutbuf
+        fi
+    fi
+}
+
+__pcmdresolve() {
+    case "$1" in
+        :b64encode)
+            echo _pcmd__base64encode
+            ;;
+        :b64|:b64decode)
+            echo _pcmd__base64decode
+            ;;
+        :d|:desc)
+            echo _pcmd__describe
+            ;;
+        :g)
+            echo _pcmd__get
+            ;;
+        :l)
+            echo _pcmd__logs
+            ;;
+        :ord)
+            echo _pcmd__ordinal
+            ;;
+        :r)
+            echo _pcmd__rollout
+            ;;
+        :v)
+            echo _pcmd__vim
+            ;;
+        :y)
+            echo _pcmd__yaml
+            ;;
+        *)
+            echo "_pcmd__${1#:}"
+            ;;
+    esac
+}
+
+__fcmdresolve() {
+    case "$1" in
+        @f)
+            set -x
+            echo follow
+            ;;
+        *)
+            echo "_fcmd__${1#@}"
+            ;;
+    esac
+}
+
+dispatch() {
+    while [[ "$#" -gt 0 ]]
+    do
+        cmdfunction=""
+        cmdopts=""
+        filtercmd=""
+        while [[ "$#" -gt 0 ]]
+        do
+            if [[ ( "$1" == :* ) || ( "$1" == @* ) ]] && [[ -n "$cmdfunction" ]]; then break; fi
+            case "$1" in
+                :[a-z]*)
+                    cmdfunction=$(__pcmdresolve $1)
+                    cmdname="${cmdfunction#_pcmd__}"
+                ;;
+                @[a-z]*)
+                    cmdfunction=$(__fcmdresolve $1)
+                    cmdname="${cmdfunction#_fcmd__}"
+                ;;
+                /*)
+                    if [[ -z "$cmdfunction" ]]; then 
+                        echo "ERROR: dispatch found an unexpected filter: \"$1\"" 1>&2
+                        exit 1
+                    fi
+                    # filter
+                    filtercmd="$filtercmd | grep -E -- '${1#/}'"
+                ;;
+                ^*)
+                    if [[ -z "$cmdfunction" ]]; then 
+                        echo "ERROR: dispatch found an unexpected filter: \"$1\"" 1>&2
+                        exit 1
+                    fi
+                    # filter
+                    filtercmd="$filtercmd | grep -E -v -- '${1#^}'"
+                ;;
+                *)
+                    # command option or argument (this is a catch-all)
+                    if [[ -z "$cmdfunction" ]]; then 
+                        echo "ERROR: dispatch found an unexpected bareword: \"$1\"" 1>&2
+                        exit 1
+                    fi
+                    cmdopts="$cmdopts $1"
+                ;;
+            esac
+            shift
+        done
+        __exec
+
+        if [[ "$#" -eq 0 ]]
+        then
+            cat $stdoutbuf
+            exit 0
+        fi
+
+        new_buffer
+
+    done
+
+}
+
+_pcmddefault() {
+    # is this even a kubectl command?
+    if ! $KUBECTL $cmdfunction --help >/dev/null 2>/dev/null
+    then
+        echo "Neither 'kubectl' nor '$SCRIPT_NAME' defines a command '$cmdname'." 1>&2
+        exit 1
+    fi
+    __require_stdoutbufprev_is_filled
+    $KUBECTL $cmdfunction $* $(cat $stdoutbufprev) 
+}
+
+_pcmd__bash() {
+    __require_stdoutbufprev_is_one_line
+    $KUBECTLWIN exec -it $(cat $stdoutbufprev) -- bash
+}
+_pcmd__base64decode() {
+    base64 -d $stdoutbufprev > $stdoutbuf
+}
+_pcmd__base64encode() {
+    base64 $stdoutbufprev > $stdoutbuf
+}
+_pcmd__first() {
+    head -n 1 $stdoutbufprev > $stdoutbuf
+}
+_fcmd__follow() {
+    __require_stdoutbufprev_is_one_line
+    $KUBECTL logs $* --follow $(cat $stdoutbufprev) 
+}
+_pcmd__get() {
+    # get does not require prior input
+    $KUBECTL $cmdfunction $* $(cat $stdoutbufprev) 
+}
+_pcmd__jq() {
+    if ! which jq >/dev/null 2>/dev/null
+    then
+        echo "jq not found in PATH, cannot execute '$cmdfunction'" 1>&2
+        exit 1
+    fi
+    __require_stdoutbufprev_is_filled
+    $KUBECTL get -o json $(cat $stdoutbufprev) | jq "$*" > $stdoutbuf
+}
+_pcmd__json() {
+    # get -o json does not require prior input
+    $KUBECTL get -o json $(cat $stdoutbufprev) > $stdoutbuf
+}
+_pcmd__jsonpath() {
+    # get -o jsonpath does not require prior input
+    $KUBECTL get -o=jsonpath="$*" $(cat $stdoutbufprev) > $stdoutbuf
+}
+_pcmd__name() {
+    # get -o name does not require prior input
+    $KUBECTL get -o name $* > $stdoutbuf
+}
+_pcmd__ordinal() {
+    sed -n "${1}p" $stdoutbufprev > $stdoutbuf
+}
+_pcmd__sed() {
+    $KUBECTLWIN exec -it $(cat $stdoutbufprev) -- bash
+}
+_pcmd__vim() {
+    cp $stdoutbufprev $stdoutbuf
+    vim $stdoutbuf || exit 1
+}
+_pcmd__yaml() {
+    # get -o yaml does not require prior input
+    $KUBECTL get -o yaml $* $(cat $stdoutbufprev) > $stdoutbuf
+}
+
+dispatch "$@"
+
