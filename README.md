@@ -91,3 +91,9 @@ Some other quick commands I have added:
 ### Extending
 
 You can "export -f" your own _pcmd__foo() and _fcmd__bar() commands in your environment before calling kq.
+
+### Miscellaneous
+
+If you need to, you can change your namespace with "-n STRING" or "--namespace STRING".
+
+If you need to start commands with text in the buffer, you can use "--input STRING".
