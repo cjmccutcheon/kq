@@ -273,7 +273,7 @@ _pcmd__ordinal() {
     sed -n "${1}p" $stdoutbufprev > $stdoutbuf
 }
 _pcmd__sed() {
-    echo FIXME
+    sed "$@" < $stdoutbufprev > $stdoutbuf
 }
 _pcmd__vi() {
     cp $stdoutbufprev $stdoutbuf
