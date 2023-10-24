@@ -241,6 +241,9 @@ _pcmd__base64decode() {
 _pcmd__base64encode() {
     base64 $stdoutbufprev > $stdoutbuf
 }
+_pcmd__config() {
+    $KUBECTL config $* $(cat $stdoutbufprev)
+}
 _pcmd__describe() {
     $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
 }
@@ -285,6 +288,15 @@ _pcmd__ordinal() {
 }
 _pcmd__sed() {
     sed "$@" < $stdoutbufprev > $stdoutbuf
+}
+_pcmd__setns() {
+    if [[ "$#" -eq 0 ]]
+    then
+        __require_stdoutbufprev_is_one_line
+        $KUBECTL config set-context --current --namespace=$(cat $stdoutbufprev)
+    else
+        $KUBECTL config set-context --current --namespace=$*
+    fi
 }
 _pcmd__vi() {
     cp $stdoutbufprev $stdoutbuf
