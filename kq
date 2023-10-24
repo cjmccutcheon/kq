@@ -16,18 +16,29 @@ then
     KUBECTL=kubectl
 fi
 
-if [[ $1 == '--namespace' || $1 == '-n' ]]
-then
-    shift
-    KUBECTL="$kubectl -n $1"
-    shift
-fi
-if [[ $1 == '--input' || $1 == '-i' ]]
-then
-    shift
-    echo "$1" > $stdoutbufprev
-    shift
-fi
+parse_flags=true
+while $parse_flags
+do
+    case "$1" in
+        --namespace|-n)
+            shift
+            KUBECTL="$KUBECTL -n $1"
+            shift
+        ;;
+        --input|-i)
+            shift
+            echo "$1" > $stdoutbufprev
+            shift
+        ;;
+        --)
+            parse_flags=false
+            shift
+        ;;
+        *)
+            parse_flags=false
+        ;;
+    esac
+done
 if uname -a | grep -Eqi 'mingw|cygwin'
 then
     PTTY=winpty
