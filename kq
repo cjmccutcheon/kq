@@ -4,6 +4,36 @@
 SCRIPT_DIR=$(dirname $0)
 SCRIPT_NAME="${0##*/}"
 
+if [[ $# -eq 0 ]]
+then
+    cat <<-EOF 1>&2
+	
+	Usage: $0 [--namespace <NAMESPACE>] [--input "INPUT STRINGS"] <command [command options]> <...>
+	
+	Commands all start with ':' (pipe-able) or '@' (foreground).  
+
+	Filter with '/' and negative filter with '^', or use the :grep command.
+
+	Most commands are ':' commands, and most commands are kubectl commands one-for-one.
+	
+	Some quick examples:
+	    :get deployment
+	    :get pod
+	    :describe pod
+	    :desc pod
+	    :name pod
+	    :name pod :first :yaml
+	    :name pod :yaml
+	    :name pod :first :bash
+	    :name pod /gui :first :logs
+	    :name deployment :first :jsonpath '{.spec}'
+
+	Read the README.md for more information.
+
+	EOF
+    exit 1
+fi
+
 # Buffers for pcmd actions
 stdoutbuf=$(mktemp)
 stdoutbufprev=$(mktemp)
