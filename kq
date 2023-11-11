@@ -260,7 +260,6 @@ _pcmddefault() {
 }
 
 _pcmd__apply() {
-    __require_stdoutbufprev_is_one_line
     "$KUBECTL" apply -f $(cat $stdoutbufprev) "$@"
 }
 _pcmd__bash() {
