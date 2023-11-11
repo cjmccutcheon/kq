@@ -260,11 +260,11 @@ _pcmddefault() {
 }
 
 _pcmd__apply() {
-    "$KUBECTL" apply -f $(cat $stdoutbufprev) "$@"
+    $KUBECTL apply -f $(cat $stdoutbufprev) "$@"
 }
 _pcmd__bash() {
     __require_stdoutbufprev_is_one_line
-    "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- bash
+    $PTTY $KUBECTL exec -it $(cat $stdoutbufprev) -- bash
 }
 _pcmd__base64decode() {
     base64 -d $stdoutbufprev > $stdoutbuf
