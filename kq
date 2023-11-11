@@ -259,6 +259,10 @@ _pcmddefault() {
     $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
 }
 
+_pcmd__apply() {
+    __require_stdoutbufprev_is_one_line
+    "$KUBECTL" apply -f $(cat $stdoutbufprev)
+}
 _pcmd__bash() {
     __require_stdoutbufprev_is_one_line
     "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- bash
