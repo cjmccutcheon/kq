@@ -174,7 +174,6 @@ __pcmdresolve() {
 __fcmdresolve() {
     case "$1" in
         @f)
-            set -x
             echo follow
             ;;
         *)
@@ -262,7 +261,6 @@ _pcmddefault() {
 
 _pcmd__bash() {
     __require_stdoutbufprev_is_one_line
-    set -x
     "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- bash
 }
 _pcmd__base64decode() {
