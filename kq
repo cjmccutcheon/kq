@@ -261,7 +261,7 @@ _pcmddefault() {
 
 _pcmd__bash() {
     __require_stdoutbufprev_is_one_line
-    $PTTY $KUBECTL exec -it $(cat $stdoutbufprev) -- bash
+    "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- bash "$@"
 }
 _pcmd__base64decode() {
     base64 -d $stdoutbufprev > $stdoutbuf
@@ -274,6 +274,10 @@ _pcmd__config() {
 }
 _pcmd__describe() {
     $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
+}
+_pcmd__exec() {
+    __require_stdoutbufprev_is_one_line
+    "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- "$@"
 }
 _pcmd__first() {
     head -n 1 $stdoutbufprev > $stdoutbuf
