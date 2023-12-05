@@ -256,7 +256,7 @@ _pcmddefault() {
         exit 1
     fi
     __require_stdoutbufprev_is_filled
-    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev)  > $stdoutbuf
 }
 
 _pcmd__bash() {
