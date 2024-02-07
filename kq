@@ -340,7 +340,7 @@ _pcmd__vim() {
 }
 _pcmd__wide() {
     # get does not require prior input
-    $KUBECTL get -o wide $* $(cat $stdoutbufprev) 
+    $KUBECTL get -o wide $* $(cat $stdoutbufprev) > $stdoutbuf
 }
 _pcmd__yaml() {
     # get -o yaml does not require prior input
