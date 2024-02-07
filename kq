@@ -338,6 +338,10 @@ _pcmd__vim() {
     cp $stdoutbufprev $stdoutbuf
     vim $stdoutbuf || exit 1
 }
+_pcmd__wide() {
+    # get does not require prior input
+    $KUBECTL get -o wide $* $(cat $stdoutbufprev) 
+}
 _pcmd__yaml() {
     # get -o yaml does not require prior input
     $KUBECTL get -o yaml $* $(cat $stdoutbufprev) > $stdoutbuf
