@@ -261,7 +261,7 @@ _pcmddefault() {
 
 _pcmd__bash() {
     __require_stdoutbufprev_is_one_line
-    "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- bash "$@"
+    "$PTTY" $KUBECTL exec -it $(cat $stdoutbufprev) -- bash "$@"
 }
 _pcmd__base64decode() {
     base64 -d $stdoutbufprev > $stdoutbuf
@@ -272,12 +272,15 @@ _pcmd__base64encode() {
 _pcmd__config() {
     $KUBECTL config $* $(cat $stdoutbufprev)
 }
+_pcmd__delete() {
+    $KUBECTL delete $* $(cat $stdoutbufprev) > $stdoutbuf
+}
 _pcmd__describe() {
-    $KUBECTL $cmdname $* $(cat $stdoutbufprev) 
+    $KUBECTL $cmdname $* $(cat $stdoutbufprev) > $stdoutbuf
 }
 _pcmd__exec() {
     __require_stdoutbufprev_is_one_line
-    "$PTTY" "$KUBECTL" exec -it $(cat $stdoutbufprev) -- "$@"
+    "$PTTY" $KUBECTL exec -it $(cat $stdoutbufprev) -- "$@"
 }
 _pcmd__first() {
     head -n 1 $stdoutbufprev > $stdoutbuf
@@ -309,7 +312,9 @@ _pcmd__json() {
 }
 _pcmd__jsonpath() {
     # get -o jsonpath does not require prior input
-    $KUBECTL get -o=jsonpath="$*" $(cat $stdoutbufprev) > $stdoutbuf
+    local jsonpath="$1"
+    shift
+    $KUBECTL get -o=jsonpath="$jsonpath" "$@" $(cat $stdoutbufprev) > $stdoutbuf
 }
 _pcmd__name() {
     # get -o name does not require prior input
