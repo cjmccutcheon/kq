@@ -79,18 +79,29 @@ Some other quick commands I have added:
     - :json
     - :jsonpath
     - :name
-    - :bash        -- Create a bash shell via "exec".  WARNING: Currently assumes you're in windows and need winpty.
-    - :first       -- Choose the first item in a list (helpful for commands that need to take only one object)
-    - :ordinal     -- Choose the N-th item in a list
+    - :bash         -- Create a bash shell via "exec".  WARNING: Currently assumes you're in windows and need winpty.
+    - :first        -- Choose the first item in a list (helpful for commands that need to take only one object)
+    - :ordinal      -- Choose the N-th item in a list
     - :sed
-    - :jq
-    - :vi and :vim -- Use vi or vim to edit the preceding buffer, and output the saved file as the next buffer. Exit with ":cq" to cancel.
-    - :base64encode
-    - :base64decode
+    - :jq           -- Instead of :jsonpath, send :json to jq program (must be installed) and run inline command
+    - :vi and :vim  -- Use vi or vim to edit the preceding buffer, and output the saved file as the next buffer. Exit with ":cq" to cancel.
+    - :base64encode -- (Alias: :b64encode)
+    - :base64decode -- (Aliases: :b64 and :b64decode)
+
+### Selected Examples
+
+#### Sample startTime from one of the pods named "foo"
+    kq :name pod /foo :first :jsonpath '{.status.startTime}'
+
+#### Decode secret "token" with name "sa-token"
+    kq :name secret /sa-token :jsonpath '{.data.token}' :b64
+
+#### Quick-and-dirty scan of "bar" image value from deployment "foo"
+    kq :name deploy /foo :yaml /image: /bar
 
 ### Extending
 
-You can "export -f" your own _pcmd__foo() and _fcmd__bar() commands in your environment before calling kq.
+If you do not want to edit kq directly, you can "export -f" your own _pcmd__foo() and _fcmd__bar() commands in your environment before calling kq.
 
 ### Miscellaneous
 
